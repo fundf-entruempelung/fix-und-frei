@@ -20,6 +20,47 @@ export default defineNuxtConfig({
   app: {
     head: {
       script: [
+        // Google Ads global site tag (gtag.js) for AW-17898917853.
+        // Loaded directly (in addition to GTM) so gtag() consent/conversion calls
+        // work reliably regardless of what is configured inside the GTM container.
+        {
+          src: 'https://www.googletagmanager.com/gtag/js?id=AW-17898917853',
+          async: true,
+          tagPosition: 'head'
+        },
+        {
+          innerHTML: `window.dataLayer = window.dataLayer || [];
+function gtag(){ dataLayer.push(arguments); }
+window.gtag = gtag;
+
+// Consent Mode is managed globally by the existing GTM cookie banner via the
+// shared dataLayer - no default/update calls are set here to avoid conflicting
+// with it.
+
+gtag('js', new Date());
+gtag('config', 'AW-17898917853');
+
+// Capture gclid/gbraid/wbraid on the landing page for later offline conversion import.
+// Stored for 90 days so it survives until a job is won and reported back to Google Ads.
+(function() {
+  try {
+    var params = new URLSearchParams(window.location.search);
+    var ids = {};
+    ['gclid', 'gbraid', 'wbraid'].forEach(function (key) {
+      var value = params.get(key);
+      if (value) ids[key] = value;
+    });
+    if (Object.keys(ids).length) {
+      ids.ts = Date.now();
+      var maxAge = 60 * 60 * 24 * 90; // 90 days
+      document.cookie = 'ff_gclid=' + encodeURIComponent(JSON.stringify(ids)) + '; path=/; max-age=' + maxAge + '; SameSite=Lax';
+      try { window.localStorage.setItem('ff_gclid', JSON.stringify(ids)); } catch (e) {}
+    }
+  } catch (e) {}
+})();`,
+          type: 'text/javascript',
+          tagPosition: 'head'
+        },
         {
           innerHTML: `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
 new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
